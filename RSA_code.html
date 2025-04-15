@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>RSA 암호화 체험기</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; padding: 20px; }
+    input, button { margin: 5px 0; padding: 5px; }
+    p span, pre { background: #f0f0f0; padding: 5px; display: inline-block; margin-top: 5px; }
+    h2, h3 { margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <h2>🔐 RSA 암호화 체험기 (간단 버전)</h2>
+
+  <p>
+    <button onclick="generateKeys()">공개키/개인키 생성</button><br>
+    🔓 공개키 (e, n): <span id="publicKey"></span><br>
+    🔑 개인키 (d, n): <span id="privateKey"></span>
+  </p>
+
+  <h3>평문 입력</h3>
+  <input type="text" id="plaintext" placeholder="예: hello">
+  <button onclick="encrypt()">암호화</button>
+  <p>암호문: <span id="cipherText"></span></p>
+  <pre id="encryptExplain"></pre>
+  <p id="modExplanationEncrypt"></p>
+
+  <h3>암호문 복호화</h3>
+  <input type="text" id="cipherInput" placeholder="암호문 숫자 (공백으로 구분)">
+  <button onclick="decrypt()">복호화</button>
+  <p>복호문: <span id="decryptedText"></span></p>
+  <pre id="decryptExplain"></pre>
+  <p id="modExplanationDecrypt"></p>
+
+  <script>
+    let e, d, n;
+
+    function gcd(a, b) {
+      return b === 0 ? a : gcd(b, a % b);
+    }
+
+    function modInverse(a, m) {
+      let m0 = m, t, q;
+      let x0 = 0, x1 = 1;
+      if (m === 1) return 0;
+      while (a > 1) {
+        q = Math.floor(a / m);
+        t = m;
+        m = a % m; a = t;
+        t = x0;
+        x0 = x1 - q * x0;
+        x1 = t;
+      }
+      return (x1 + m0) % m0;
+    }
+
+    function generateKeys() {
+      const p = 11;
+      const q = 13;
+      n = p * q;
+      const phi = (p - 1) * (q - 1);
+      e = 7;
+      d = modInverse(e, phi);
+
+      document.getElementById("publicKey").innerText = `(${e}, ${n})`;
+      document.getElementById("privateKey").innerText = `(${d}, ${n})`;
+    }
+
+    function encrypt() {
+      const plain = document.getElementById("plaintext").value;
+      const codes = [];
+      let explanation = "📌 암호화 과정:\n";
+      let modExplanation = "🔑 모듈러 연산 (mod): 나머지 연산이란, 두 수를 나누고 그 나머지를 구하는 연산입니다. 예를 들어 17을 5로 나누면 나머지가 2입니다.";
+
+      for (let i = 0; i < plain.length; i++) {
+        const ch = plain[i];
+        const m = plain.charCodeAt(i);
+        const c = BigInt(m) ** BigInt(e) % BigInt(n);
+        codes.push(c.toString());
+
+        explanation += `\n🔤 '${ch}' → ASCII ${m}\n`;
+        explanation += `🔐 암호화: ${m}^${e} mod ${n} = ${c}\n`;
+      }
+
+      document.getElementById("cipherText").innerText = codes.join(" ");
+      document.getElementById("encryptExplain").innerText = explanation;
+      document.getElementById("modExplanationEncrypt").innerText = modExplanation;
+    }
+
+    function decrypt() {
+      const input = document.getElementById("cipherInput").value;
+      const parts = input.trim().split(" ");
+      let result = "";
+      let explanation = "📌 복호화 과정:\n";
+      let modExplanation = "🔑 모듈러 연산 (mod): 복호화 과정에서도 나머지 연산을 사용하여 암호문을 원본 메시지로 되돌립니다.";
+
+      for (let part of parts) {
+        const c = BigInt(part);
+        const m = c ** BigInt(d) % BigInt(n);
+        const ch = String.fromCharCode(Number(m));
+        result += ch;
+
+        explanation += `\n🔒 암호문 ${c}\n`;
+        explanation += `🔓 복호화: ${c}^${d} mod ${n} = ${m} → '${ch}'\n`;
+      }
+
+      document.getElementById("decryptedText").innerText = result;
+      document.getElementById("decryptExplain").innerText = explanation;
+      document.getElementById("modExplanationDecrypt").innerText = modExplanation;
+    }
+  </script>
+</body>
+</html>
